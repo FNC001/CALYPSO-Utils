@@ -1448,6 +1448,8 @@ def run():
                          is_dft = False,
                          is_nosym = False,
                          is_ini = False,
+                         plotch = False,
+                         plotevo = False,
                          num_proce = 50,
                          prec = 0.1,
                          mprec = None,
@@ -1503,6 +1505,147 @@ def run():
 
 
     (sysname, name_ele, npop, mol, hard, vsc, vsce, d2, cl, hm, lsur, bg, xrd, ts, num_neb) = readinput()
+
+    if options.plotch:
+        from pymatgen.analysis.phase_diagram import PDEntry, PhaseDiagram, PDPlotter
+        from pymatgen.core.composition import Composition
+        import pandas as pd
+        
+        ini_entries = []
+        convexhull_data = pd.read_csv('./convexhull.csv', header=0, sep=r',')
+        
+        for idx, row in convexhull_data.iterrows():
+            #if row['form_energy'] <= 0.02:
+            comp = Composition(row['formula'])
+            num_atoms = comp.num_atoms
+            enth_per_atom = row['enthalpy']
+            enth = enth_per_atom * num_atoms
+            entry_id = row['Number']
+            _entry = PDEntry(comp, enth)
+            _entry.entry_id = entry_id
+            # _entry.spg = row['spg']
+            # _entry.p = row['P']
+            # _entry.nsw = row['NSW']
+            # _entry.epa = enth_per_atom
+            ini_entries.append(_entry)              
+
+        for i in range(len(name_ele)):
+            comp = name_ele[i]
+            enth = vsce[i]
+            entry_id = name_ele[i]
+            _entry = PDEntry(comp, enth)
+            _entry.entry_id = entry_id
+            ini_entries.append(_entry)              
+            
+        ini_pd = PhaseDiagram(ini_entries)
+        plotter = PDPlotter(ini_pd, show_unstable=0.050, backend='plotly')
+        plotter.get_plot().write_image('convexhull.png')     
+        
+        
+        e_above_hull = []
+        form_energy = []
+        names = []
+        nsws = []
+        formulas = []
+        enths = []
+        spgs = []
+        ps = []
+        threshold_start = 0.00
+        #threshold = 0.05
+        
+        for entry in ini_entries:
+            ebh = ini_pd.get_e_above_hull(entry, )
+            fme = ini_pd.get_form_energy_per_atom(entry)
+            name = entry.entry_id
+            # spg = entry.spg
+            # p = entry.p
+            formula = entry.composition.formula.replace(".", "")
+            #if threshold_start <= ebh <= threshold:
+            e_above_hull.append(ebh)
+            form_energy.append(fme)
+            names.append(name)
+            formulas.append(''.join(  (''.join(str(formula))).split()  ))
+            # spgs.append(spg)
+            # ps.append(p)
+            # enths.append(enth)
+        
+        
+        df = pd.DataFrame(
+            {
+                'formula':formulas,
+                'e_above_hull':e_above_hull,
+                # 'spg':spgs,
+                # 'p':ps,
+                'form_energy':form_energy,
+                'name':names,
+                }
+            )
+        df.to_csv('./e_above_hull_50meV.csv', index=False, sep=' ')
+        sys.exit()
+
+    if options.plotevo:
+        import matplotlib.pyplot as plt
+        import scienceplots
+        
+        plt.style.use(['science', 'ieee'])
+        
+        
+        # data
+        pso_sor_list = glob.glob('./pso_sor_*')
+        x = []
+        yy = []
+        y = [np.loadtxt('pso_sor_%d'%(t)).tolist() for t in range(1, len(pso_sor_list)+1)]
+        for evo_num, ene_list in enumerate(y):
+            for ene in ene_list:
+                yy.append(ene)
+                x.append(evo_num+1)
+
+        temp = list(set(yy))
+        temp.sort()
+        max_y = temp[-1] if temp[-1] < 1000 else temp[-2]
+        min_y = temp[0] if temp[0] > -1000 else temp[1]
+
+        # colormap
+        cm = plt.cm.get_cmap('rainbow')
+        
+        # fig, ax
+        fig, ax = plt.subplots(figsize=(10, 4))
+        
+        # ax.scatter(x, yy, c=yy, cmap=cm, vmin=2.3, vmax=2.6, s=5)
+        sc = ax.scatter(x, yy, c=yy, cmap=cm, vmin=min_y, vmax=max_y, s=10)
+        
+        # beauty
+        ax.set_xlabel('Structure Evolution Step', fontsize=25, )
+        ax.set_ylabel('Energy (eV/atom)', fontsize=25, )
+        # ax.set_xticks([0, 10, 20, 30, 40, 50],)
+        # ax.set_yticks([-3.6, -3.5, -3.4, -3.3, -3.2],)
+
+        # ax.tick_params(width=5, labelsize=10)
+        ax.set_ylim((min_y, max_y))
+        
+        plt.tick_params(labelsize=20)
+        
+        # colorbar
+        cbar = fig.colorbar(sc)
+        # cbar.set_ticks(ticks=[-3.6, -3.5, -3.4, -3.3, -3.2])
+        # cbar.ax.tick_params(labelsize=20)
+        cbar.ax.minorticks_off()
+        cbar.outline.set_visible(False)
+        
+        
+        # spines width
+        width = 2
+        ca = plt.gca()
+        
+        ca.spines['bottom'].set_linewidth(width)
+        ca.spines['left'].set_linewidth(width)
+        ca.spines['top'].set_linewidth(width)
+        ca.spines['right'].set_linewidth(width)
+        
+        plt.tight_layout()
+        
+        fig.savefig('evo.png', dpi=350)
+        sys.exit()
 
     # struct = parseStruct()
     if options.is_ini:
@@ -1599,144 +1742,6 @@ def run():
         fdir = './'
         Zoutput(structure, options, num_proce, prec_pool, is_refine, is_prim, hard, fdir, d2, cl, norefine, hm, bg, xrd, lsur)
 
-    if plotch:
-        from pymatgen.analysis.phase_diagram import PDEntry, PhaseDiagram, PDPlotter
-        from pymatgen.core.composition import Composition
-        import pandas as pd
-        
-        ini_entries = []
-        convexhull_data = pd.read_csv('./convexhull.csv', header=0, sep=r',')
-        
-        for idx, row in convexhull_data.iterrows():
-            #if row['form_energy'] <= 0.02:
-            comp = Composition(row['formula'])
-            num_atoms = comp.num_atoms
-            enth_per_atom = row['enthalpy']
-            enth = enth_per_atom * num_atoms
-            entry_id = row['Number']
-            _entry = PDEntry(comp, enth)
-            _entry.entry_id = entry_id
-            # _entry.spg = row['spg']
-            # _entry.p = row['P']
-            # _entry.nsw = row['NSW']
-            # _entry.epa = enth_per_atom
-            ini_entries.append(_entry)              
-
-        for i in range(len(name_ele)):
-            comp = name_ele[i]
-            enth = vsce[i]
-            entry_id = name_ele[i]
-            _entry = PDEntry(comp, enth)
-            _entry.entry_id = entry_id
-            ini_entries.append(_entry)              
-            
-        ini_pd = PhaseDiagram(ini_entries)
-        plotter = PDPlotter(ini_pd, show_unstable=0.050, backend='plotly')
-        plotter.get_plot().write_image('convexhull.png')     
-        
-        
-        e_above_hull = []
-        form_energy = []
-        names = []
-        nsws = []
-        formulas = []
-        enths = []
-        spgs = []
-        ps = []
-        threshold_start = 0.00
-        #threshold = 0.05
-        
-        for entry in ini_entries:
-            ebh = ini_pd.get_e_above_hull(entry, )
-            fme = ini_pd.get_form_energy_per_atom(entry)
-            name = entry.entry_id
-            # spg = entry.spg
-            # p = entry.p
-            formula = entry.composition.formula.replace(".", "")
-            #if threshold_start <= ebh <= threshold:
-            e_above_hull.append(ebh)
-            form_energy.append(fme)
-            names.append(name)
-            formulas.append(''.join(  (''.join(str(formula))).split()  ))
-            # spgs.append(spg)
-            # ps.append(p)
-            # enths.append(enth)
-        
-        
-        df = pd.DataFrame(
-            {
-                'formula':formulas,
-                'e_above_hull':e_above_hull,
-                # 'spg':spgs,
-                # 'p':ps,
-                'form_energy':form_energy,
-                'name':names,
-                }
-            )
-        df.to_csv('./e_above_hull_50meV.csv', index=False, sep=' ')
-    # (sysname, name_ele, npop, mol, hard, vsc, vsce, d2, cl, hm, lsur, bg, xrd, ts, num_neb) = readinput()
-
-    if plotevo:
-        import matplotlib.pyplot as plt
-        import scienceplots
-        
-        plt.style.use(['science', 'ieee'])
-        
-        
-        # data
-        pso_sor_list = glob.glob('./pso_sor_*')
-        x = []
-        y = [np.loadtxt('pso_sor_%d'%(t)).tolist() for t in range(1, len(pso_sor_list)+1)]
-        for evo_num, ene_list in enumerate(y):
-            for ene in ene_list:
-                yy.append(ene)
-                x.append(evo_num)
-
-        temp = list(set(yy))
-        temp.sort()
-        max_y = temp[-1] if temp[-1] < 1000 else temp[-2]
-        min_y = temp[0] if temp[0] > -1000 else temp[1]
-
-        # colormap
-        cm = plt.cm.get_cmap('rainbow')
-        
-        # fig, ax
-        fig, ax = plt.subplots(figsize=(10, 4))
-        
-        # ax.scatter(x, yy, c=yy, cmap=cm, vmin=2.3, vmax=2.6, s=5)
-        sc = ax.scatter(x, yy, c=yy, cmap=cm, vmin=min_y, vmax=max_y, s=10)
-        
-        # beauty
-        ax.set_xlabel('Structure Evolution Step', fontsize=25, )
-        ax.set_ylabel('Energy (eV/atom)', fontsize=25, )
-        # ax.set_xticks([0, 10, 20, 30, 40, 50],)
-        # ax.set_yticks([-3.6, -3.5, -3.4, -3.3, -3.2],)
-
-        # ax.tick_params(width=5, labelsize=10)
-        # ax.set_ylim((-3.6, -3.2))
-        
-        plt.tick_params(labelsize=20)
-        
-        # colorbar
-        cbar = fig.colorbar(sc)
-        # cbar.set_ticks(ticks=[-3.6, -3.5, -3.4, -3.3, -3.2])
-        # cbar.ax.tick_params(labelsize=20)
-        cbar.ax.minorticks_off()
-        cbar.outline.set_visible(False)
-        
-        
-        # spines width
-        width = 2
-        ca = plt.gca()
-        
-        ca.spines['bottom'].set_linewidth(width)
-        ca.spines['left'].set_linewidth(width)
-        ca.spines['top'].set_linewidth(width)
-        ca.spines['right'].set_linewidth(width)
-        
-        plt.tight_layout()
-        
-        fig.savefig('evo.png', dpi=350)
 
 
 if __name__ == '__main__':
