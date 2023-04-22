@@ -1,5 +1,4 @@
-#!/opt/mamba/bin/python -u
-#!/usr/bin/env python
+#!/opt/mamba/bin/python
 # -*- coding: utf-8 -*-
 #
 # This file is part of CALYPSO PACKAGE.
@@ -18,6 +17,7 @@
 # Author : Zhenyu Wang <wzy@calypso.cn>
 # Version 2022.07.01 update to python3 version with spglib-v1.16.0
 # Version 2022.10.12 update to python3 version with spglib-v2.0.1
+# Version 2023.04.17 support to plot convexhull and evo
 #
 # Copyright CALYPSO Develop Group
 
