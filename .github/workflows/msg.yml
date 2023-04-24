@@ -1,0 +1,65 @@
+name: 'Commit Message Check'
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+  pull_request_target:
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+  push:
+
+jobs:
+  check-commit-message:
+    name: Check Commit Message
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Commit Type
+        uses: gsactions/commit-message-checker@v2
+        with:
+          pattern: '^(feat|fix|docs|style|refactor|pref|test|build|ci|chore|revert)(\([a-zA-z0-9_]+\)){0,1}: .+$'
+          flags: 'gm'
+          checkAllCommitMessages: 'true'
+          accessToken: ${{ secrets.MSG_ACTION }} # github access token is only required if checkAllCommitMessages is true
+          error: "ERROR: first line is not in correct format
+Please write the commit message in the following format:
+--------------------------
+<type>(<scope>): <subject>
+<body>
+<footer>
+--------------------------
+type:
+  feat:     A new feature
+  fix:      A bug fix
+  docs:     Documentation only changes
+  style:    Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
+  refactor: A code change that neither fixes a bug nor adds a feature
+  perf:     A code change that improves performance
+  test:     Adding missing tests or correcting existing tests
+  build:    Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
+  ci:       Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
+  chore:    Other changes that don't modify src or test files
+  revert:   Reverts a previous commit
+scope: optional, the scope involved in this commit
+subject: short description of this commit, use first-person present tense verbs at the beginning, do not capitalize the first letter, and do not use the ending period
+followed by an empty line
+body: detailed description, should include the modificaiton motivation, and the comparison before and after the modification
+Example:
+----------------------------
+docs(README): add README.md
+1. add author info
+2. add installation info
+----------------------------"
+      - name: Check Line Length
+        uses: gsactions/commit-message-checker@v2
+        with:
+          pattern: '^(.*?: ).{1,74}'
+          error: 'The subject exceed maximum length of 74 characters.'
+          excludeDescription: 'true' # optional: this excludes the description body of a pull request
+          checkAllCommitMessages: 'true' # optional: this checks all commits associated with a pull request
+          accessToken: ${{ secrets.MSG_ACTION }} # github access token is only required if checkAllCommitMessages is true
