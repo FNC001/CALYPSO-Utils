@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools-scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+    name = "calypso_utils"
+    dynamic = ["version"]
+    description = "CALYPSO Crystal Structure Prediction package on Bohrium Platform"
+    authors = [
+        {name = "Zhenyu Wang", email = "wangzy@calypso.cn"},
+        {name = "Xiaoshan Luo", email = "luoxs@calypso.cn"},
+    ]
+    dependencies = [
+        "ase",
+        "click",
+        # "dpdata",
+        # "dpdispatcher",
+        # "kaleido",
+        # "matplotlib",
+        # "numpy",
+        # "oss2",
+        # "pandas",
+        # "plotly",
+        # "pymatgen",
+        # "scienceplots",
+        # "scipy",
+        # "pyarrow",
+        # "spglib",
+    ]
+    requires-python = ">=3.7.4"
+    readme = "README.md"
+    license = {text = ""}
+    maintainers = [
+        {name = "Zhenyu Wang", email = "wangzy@calypso.cn"},
+        {name = "Xiaoshan Luo", email = "luoxs@calypso.cn"},
+    ]
+    keywords = []
+    classifiers = [
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.7",
+        "Operating System :: POSIX :: Linux",
+        "Operating System :: UNIX :: MacOSX",
+    ]
+
+[project.optional-dependencies]
+    docs = [
+        "sphinx>=5.3.0",
+        "myst-parser>=1.0.0",
+        "sphinx-rtd-theme>=1.2.0",
+        "numpydoc>=1.5.0",
+    ]
+    test = [
+        "coverage"
+    ]
+
+[project.urls]
+    homepage = "http://www.calypso.cn/"
+    # repository = ""
+    # documentation = ""
+
+[project.scripts]
+    "cak-eval" = "calypso_utils.cli_eval:main"
+
+[tool.setuptools]
+    packages = ["calypso_utils"]
+
+[tool.setuptools_scm]
+    write_to = "calypso_utils/_version.py"
+
+[tool.black]
+    skip-string-normalization = true
+    max-length = 88
+
+[tool.isort]
+    profile = "black"
+
+[tool.mypy]
+    follow-imports = "silent"
+    show-column-numbers = true
